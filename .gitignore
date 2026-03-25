@@ -1,0 +1,26 @@
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Gradle / Java
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+*.class
+
+# Log file
+*.log
+
+# Windows
+Thumbs.db
+Desktop.ini

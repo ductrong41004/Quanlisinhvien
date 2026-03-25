@@ -2,16 +2,18 @@ package com.quanlysinhvien.service;
 
 import com.quanlysinhvien.model.Student;
 import com.quanlysinhvien.repository.StudentRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class StudentService {
 
     private final StudentRepository studentRepository;
+
+    public StudentService(StudentRepository studentRepository) {
+        this.studentRepository = studentRepository;
+    }
 
     public List<Student> getAllStudents() {
         return studentRepository.findAll();
@@ -36,6 +38,7 @@ public class StudentService {
 
     public Student updateStudent(String id, Student studentDetails) {
         Student student = getStudentById(id);
+        student.setMaSv(studentDetails.getMaSv());
         student.setHoTen(studentDetails.getHoTen());
         student.setNgaySinh(studentDetails.getNgaySinh());
         student.setGioiTinh(studentDetails.getGioiTinh());

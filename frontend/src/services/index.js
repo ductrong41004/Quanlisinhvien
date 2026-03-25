@@ -8,8 +8,14 @@ export const StudentService = {
   delete: (id) => api.delete(`/students/${id}`),
   search: (keyword) => api.get(`/students/search`, { params: { keyword } }),
   filter: (maLop, gioiTinh) => api.get(`/students/filter`, { params: { maLop, gioiTinh } }),
-  exportCSV: () => api.get('/students/export/csv', { responseType: 'blob' }),
-  exportExcel: () => api.get('/students/export/excel', { responseType: 'blob' }),
+  exportCSV: async () => {
+    const response = await api.get('/students/export/csv', { responseType: 'blob' });
+    return response.data;
+  },
+  exportExcel: async () => {
+    const response = await api.get('/students/export/excel', { responseType: 'blob' });
+    return response.data;
+  },
 };
 
 export const ClassRoomService = {

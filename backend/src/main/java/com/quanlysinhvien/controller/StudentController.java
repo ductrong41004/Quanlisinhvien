@@ -4,7 +4,6 @@ import com.quanlysinhvien.model.Student;
 import com.quanlysinhvien.service.ExportService;
 import com.quanlysinhvien.service.StudentService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,12 +14,16 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/students")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 public class StudentController {
 
     private final StudentService studentService;
     private final ExportService exportService;
+
+    public StudentController(StudentService studentService, ExportService exportService) {
+        this.studentService = studentService;
+        this.exportService = exportService;
+    }
 
     @GetMapping
     public ResponseEntity<List<Student>> getAllStudents() {

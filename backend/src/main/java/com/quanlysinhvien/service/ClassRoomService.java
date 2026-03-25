@@ -2,16 +2,18 @@ package com.quanlysinhvien.service;
 
 import com.quanlysinhvien.model.ClassRoom;
 import com.quanlysinhvien.repository.ClassRoomRepository;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class ClassRoomService {
 
     private final ClassRoomRepository classRoomRepository;
+
+    public ClassRoomService(ClassRoomRepository classRoomRepository) {
+        this.classRoomRepository = classRoomRepository;
+    }
 
     public List<ClassRoom> getAllClasses() {
         return classRoomRepository.findAll();
@@ -36,6 +38,7 @@ public class ClassRoomService {
 
     public ClassRoom updateClass(String id, ClassRoom classDetails) {
         ClassRoom classRoom = getClassById(id);
+        classRoom.setMaLop(classDetails.getMaLop());
         classRoom.setTenLop(classDetails.getTenLop());
         classRoom.setKhoa(classDetails.getKhoa());
         classRoom.setSiSo(classDetails.getSiSo());

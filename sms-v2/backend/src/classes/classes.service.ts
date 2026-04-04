@@ -21,7 +21,8 @@ export class ClassesService {
     
     // Concurrently aggregate student count for each class
     const counts = await this.studentModel.aggregate([
-      { $group: { _id: '$class', count: { $sum: 1 } } }
+      { $unwind: '$classes' },
+      { $group: { _id: '$classes', count: { $sum: 1 } } }
     ]);
     
     // Create a map for fast lookup
@@ -68,7 +69,7 @@ export class ClassesService {
     // Update all matching students to have this class
     const updateResult = await this.studentModel.updateMany(
       { _id: { $in: studentIds } },
-      { $set: { class: classId } }
+      { $addToSet: { classes: classId } }
     );
     
     return { 

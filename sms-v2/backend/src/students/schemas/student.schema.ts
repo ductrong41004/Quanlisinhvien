@@ -20,8 +20,8 @@ export class Student {
   @Prop({ enum: ['MALE', 'FEMALE', 'OTHER'] })
   gender: string;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Class' })
-  class: string;
+  @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Class' }] })
+  classes: string[];
 
   @Prop()
   address: string;

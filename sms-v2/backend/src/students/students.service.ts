@@ -51,13 +51,13 @@ export class StudentsService {
       fullName: dto.fullName,
       dob: dto.dob,
       gender: dto.gender,
-      class: dto.class || undefined,
+      classes: dto.classes || (dto.class ? [dto.class] : []),
       address: dto.address || '',
       phoneNumber: dto.phoneNumber || '',
     });
 
     const saved = await createdStudent.save();
-    return (await this.studentModel.findById(saved._id).populate('user').populate('class').exec())!;
+    return (await this.studentModel.findById(saved._id).populate('user').populate('classes').exec())!;
   }
 
   async findAll(query: any = {}): Promise<{
@@ -89,7 +89,7 @@ export class StudentsService {
       filters.gender = query.gender;
     }
     if (query.class) {
-      filters.class = query.class;
+      filters.classes = query.class;
     }
 
     // Pagination
@@ -101,7 +101,7 @@ export class StudentsService {
       this.studentModel
         .find(filters)
         .populate('user')
-        .populate('class')
+        .populate('classes')
         .skip(skip)
         .limit(limit)
         .sort({ createdAt: -1 })
@@ -118,7 +118,7 @@ export class StudentsService {
   }
 
   async findOne(id: string): Promise<StudentDocument> {
-    const student = await this.studentModel.findById(id).populate('user').populate('class').exec();
+    const student = await this.studentModel.findById(id).populate('user').populate('classes').exec();
     if (!student) {
       throw new NotFoundException(`Student with ID ${id} not found`);
     }
@@ -126,7 +126,7 @@ export class StudentsService {
   }
 
   async findByCode(studentCode: string): Promise<StudentDocument> {
-    const student = await this.studentModel.findOne({ studentCode }).populate('user').populate('class').exec();
+    const student = await this.studentModel.findOne({ studentCode }).populate('user').populate('classes').exec();
     if (!student) {
       throw new NotFoundException(`Student with code ${studentCode} not found`);
     }
@@ -134,7 +134,7 @@ export class StudentsService {
   }
 
   async findByUserId(userId: string): Promise<StudentDocument> {
-    const student = await this.studentModel.findOne({ user: userId }).populate('user').populate('class').exec();
+    const student = await this.studentModel.findOne({ user: userId }).populate('user').populate('classes').exec();
     if (!student) {
       throw new NotFoundException(`Không tìm thấy hồ sơ sinh viên cho tài khoản này`);
     }
@@ -145,7 +145,7 @@ export class StudentsService {
     const student = await this.studentModel
       .findByIdAndUpdate(id, updateStudentDto, { new: true })
       .populate('user')
-      .populate('class')
+      .populate('classes')
       .exec();
     if (!student) {
       throw new NotFoundException(`Student with ID ${id} not found`);
@@ -177,13 +177,13 @@ export class StudentsService {
       filters.gender = query.gender;
     }
     if (query.class) {
-      filters.class = query.class;
+      filters.classes = query.class;
     }
 
     const students = await this.studentModel
       .find(filters)
       .populate('user')
-      .populate('class')
+      .populate('classes')
       .sort({ createdAt: -1 })
       .exec();
 
@@ -214,7 +214,7 @@ export class StudentsService {
         fullName: student.fullName,
         dob: student.dob ? new Date(student.dob).toLocaleDateString('vi-VN') : '',
         gender: student.gender === 'MALE' ? 'Nam' : student.gender === 'FEMALE' ? 'Nữ' : 'Khác',
-        className: student.class?.name || 'N/A',
+        className: student.classes?.map((c: any) => c.name).join(', ') || 'N/A',
         phone: student.phoneNumber || 'N/A',
         email: student.user?.email || 'N/A',
       });
@@ -315,7 +315,7 @@ export class StudentsService {
           dob,
           gender,
           phoneNumber: phone,
-          class: classId
+          classes: classId ? [classId] : []
         });
 
         results.imported++;

@@ -59,9 +59,8 @@ const ClassDetailsPage: React.FC = () => {
   
   // Filter out students who are ALREADY in this class
   const availableStudents = allStudents.filter((st: any) => {
-    // If student has a class object/id, check if it matches the current class id
-    const stClassId = typeof st.class === 'object' ? st.class?._id : st.class;
-    return stClassId !== id;
+    if (!st.classes || st.classes.length === 0) return true;
+    return !st.classes.some((c: any) => (typeof c === 'object' ? c._id === id : c === id));
   });
 
   const isLoading = classLoading || studentsLoading;

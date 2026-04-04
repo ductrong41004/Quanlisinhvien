@@ -18,7 +18,7 @@ interface StudentData {
   address?: string;
   phoneNumber?: string;
   user?: { email: string };
-  class?: { _id: string; name: string };
+  classes?: { _id: string; name: string }[];
 }
 
 interface PaginatedResponse {
@@ -72,7 +72,7 @@ const StudentModal: React.FC<{
         studentCode: student.studentCode || '',
         dob: student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
         gender: student.gender || 'MALE',
-        class: student.class?._id || '',
+        class: student.classes?.[0]?._id || '',
         phoneNumber: student.phoneNumber || '',
         address: student.address || '',
         email: student.user?.email || '',
@@ -103,7 +103,7 @@ const StudentModal: React.FC<{
           fullName: form.fullName,
           dob: form.dob,
           gender: form.gender,
-          class: form.class || undefined,
+          classes: form.class ? [form.class] : undefined,
           phoneNumber: form.phoneNumber,
           address: form.address,
         });
@@ -113,7 +113,7 @@ const StudentModal: React.FC<{
           studentCode: form.studentCode,
           dob: form.dob,
           gender: form.gender,
-          class: form.class || undefined,
+          classes: form.class ? [form.class] : undefined,
           phoneNumber: form.phoneNumber,
           address: form.address,
           email: form.email || undefined,
@@ -713,9 +713,11 @@ const StudentListPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-medium flex items-center">
-                        <BookOpen className="h-4 w-4 mr-2 text-gray-400" />
-                        {student.class?.name || 'Chưa gán'}
+                      <div className="text-sm text-gray-900 font-medium flex items-center max-w-[200px] flex-wrap">
+                        <BookOpen className="h-4 w-4 mr-2 text-gray-400 flex-shrink-0" />
+                        {student.classes && student.classes.length > 0 
+                          ? student.classes.map((c: any) => c.name).join(', ') 
+                          : 'Chưa gán'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

@@ -27,14 +27,15 @@ const StudentProfilePage: React.FC = () => {
 
   // Lấy thông tin điểm danh
   const { data: attendanceData, isLoading: loadingAttendance } = useQuery({
-    queryKey: ['my-attendance', student?._id, student?.class?._id],
+    queryKey: ['my-attendance', student?._id],
     queryFn: async () => {
+      // Pass no classId to get cumulative attendance across all classes, or API handles default
       const resp = await axiosInstance.get('/attendance/student-stats', {
-        params: { studentId: student._id, classId: student.class._id }
+        params: { studentId: student._id }
       });
       return resp.data;
     },
-    enabled: !!student?._id && !!student?.class?._id,
+    enabled: !!student?._id,
   });
 
   if (loadingProfile) {
@@ -73,8 +74,8 @@ const StudentProfilePage: React.FC = () => {
               <span className="inline-flex items-center gap-1 text-sm">
                 <Hash className="h-4 w-4" /> {student?.studentCode}
               </span>
-              <span className="inline-flex items-center gap-1 text-sm">
-                <BookOpen className="h-4 w-4" /> {student?.class?.name || 'Chưa gán lớp'}
+              <span className="inline-flex items-center gap-1 text-sm max-w-[200px] truncate">
+                <BookOpen className="h-4 w-4 flex-shrink-0" /> {student?.classes && student.classes.length > 0 ? student.classes.map((c: any) => c.name).join(', ') : 'Chưa gán lớp'}
               </span>
               <span className="inline-flex items-center gap-1 text-sm">
                 <Mail className="h-4 w-4" /> {student?.user?.email || 'N/A'}
@@ -97,7 +98,7 @@ const StudentProfilePage: React.FC = () => {
               <InfoItem icon={<User className="h-4 w-4" />} label="Giới tính" value={student?.gender === 'MALE' ? 'Nam' : student?.gender === 'FEMALE' ? 'Nữ' : 'Khác'} />
               <InfoItem icon={<Phone className="h-4 w-4" />} label="Số điện thoại" value={student?.phoneNumber || 'Chưa cập nhật'} />
               <InfoItem icon={<MapPin className="h-4 w-4" />} label="Địa chỉ" value={student?.address || 'Chưa cập nhật'} />
-              <InfoItem icon={<BookOpen className="h-4 w-4" />} label="Lớp học" value={student?.class?.name || 'Chưa gán'} />
+              <InfoItem icon={<BookOpen className="h-4 w-4" />} label="Lớp học" value={student?.classes && student.classes.length > 0 ? student.classes.map((c: any) => c.name).join(', ') : 'Chưa gán'} />
             </div>
           </div>
 

@@ -74,7 +74,7 @@ const GradeListPage: React.FC = () => {
     if (g) {
       setEditingId(g._id);
       setFormData({
-        student: g.student?._id || '',
+        student: typeof g.student === 'object' ? g.student?._id : g.student || '',
         subjectName: g.subjectName,
         semester: g.semester,
         midtermScore: g.midtermScore.toString(),
@@ -243,7 +243,7 @@ const GradeListPage: React.FC = () => {
                   required
                   value={formData.student}
                   onChange={(e) => setFormData({ ...formData, student: e.target.value })}
-                  disabled={!!editingId} // Cannot change student when editing
+                  disabled={false} // Cho phép sửa nếu lỡ nhập sai sinh viên
                   className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-gray-100"
                 >
                   <option value="">-- Chọn sinh viên --</option>

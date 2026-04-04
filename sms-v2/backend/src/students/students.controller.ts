@@ -28,6 +28,15 @@ export class StudentsController {
     return this.studentsService.create(createStudentDto);
   }
 
+  /**
+   * Create a student with auto-generated User account
+   */
+  @Post('with-user')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async createWithUser(@Body() dto: any) {
+    return this.studentsService.createWithUser(dto);
+  }
+
   @Get('export/excel')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async exportExcel(@Query() query: any, @Res() res: Response) {

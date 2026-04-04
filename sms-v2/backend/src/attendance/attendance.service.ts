@@ -57,8 +57,8 @@ export class AttendanceService {
     }
 
     // 2. Tìm Student record từ userId
-    const students = await this.studentsService.findAll({ class: payload.classId });
-    const student = students.find((s: any) => s.user?._id?.toString() === userId || s.user?.toString() === userId);
+    const result = await this.studentsService.findAll({ class: payload.classId, limit: 1000 });
+    const student = result.data.find((s: any) => s.user?._id?.toString() === userId || s.user?.toString() === userId);
 
     if (!student) {
       throw new BadRequestException('Bạn không thuộc lớp học này hoặc tài khoản chưa được liên kết.');

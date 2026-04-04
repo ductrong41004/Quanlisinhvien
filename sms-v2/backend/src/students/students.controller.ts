@@ -8,7 +8,9 @@ import {
   Delete,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { StudentsService } from './students.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -24,6 +26,19 @@ export class StudentsController {
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async create(@Body() createStudentDto: any) {
     return this.studentsService.create(createStudentDto);
+  }
+
+  @Get('export/excel')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async exportExcel(@Query() query: any, @Res() res: Response) {
+    const buffer = await this.studentsService.exportExcel(query);
+    
+    res.set({
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'Content-Disposition': 'attachment; filename="students.xlsx"',
+    });
+    
+    res.send(buffer);
   }
 
   @Get()

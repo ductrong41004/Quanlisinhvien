@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
-import { UserPlus, Search, Filter, MoreHorizontal, User, Mail, Hash, BookOpen } from 'lucide-react';
+import { UserPlus, Search, Filter, MoreHorizontal, User, Mail, Hash, BookOpen, Download } from 'lucide-react';
 
 const StudentListPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,6 +16,30 @@ const StudentListPage: React.FC = () => {
     },
   });
 
+  const handleExportExcel = async () => {
+    try {
+      const response = await axiosInstance.get('/students/export/excel', {
+        params: { fullName: searchTerm },
+        responseType: 'blob', // Important for downloading files
+      });
+
+      // Create a blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'DSDanhSachSinhVien.xlsx'); // File name
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting excel:', error);
+      alert('Không thể xuất file Excel. Vui lòng thử lại.');
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -23,10 +47,19 @@ const StudentListPage: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Danh sách Sinh viên</h1>
           <p className="mt-1 text-sm text-gray-500">Quản lý và theo dõi thông tin chi tiết từng sinh viên trong hệ thống.</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
-          <UserPlus className="h-5 w-5 mr-2" />
-          Thêm Sinh viên
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportExcel}
+            className="inline-flex items-center px-4 py-2.5 border border-indigo-200 rounded-xl shadow-sm text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-all transform hover:-translate-y-0.5"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Xuất Excel
+          </button>
+          <button className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+            <UserPlus className="h-5 w-5 mr-2" />
+            Thêm Sinh viên
+          </button>
+        </div>
       </div>
 
       <div className="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">

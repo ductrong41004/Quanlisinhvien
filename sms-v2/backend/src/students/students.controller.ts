@@ -1,0 +1,50 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { StudentsService } from './students.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/schemas/user.schema';
+
+@Controller('students')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class StudentsController {
+  constructor(private readonly studentsService: StudentsService) {}
+
+  @Post()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async create(@Body() createStudentDto: any) {
+    return this.studentsService.create(createStudentDto);
+  }
+
+  @Get()
+  async findAll(@Query() query: any) {
+    return this.studentsService.findAll(query);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string) {
+    return this.studentsService.findOne(id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async update(@Param('id') id: string, @Body() updateStudentDto: any) {
+    return this.studentsService.update(id, updateStudentDto);
+  }
+
+  @Delete(':id')
+  @Roles(UserRole.ADMIN)
+  async remove(@Param('id') id: string) {
+    return this.studentsService.remove(id);
+  }
+}

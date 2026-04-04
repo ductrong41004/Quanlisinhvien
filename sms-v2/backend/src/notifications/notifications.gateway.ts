@@ -1,14 +1,12 @@
-import { 
-  WebSocketGateway, 
-  WebSocketServer, 
-  SubscribeMessage, 
-  MessageBody,
+import {
+  WebSocketGateway,
+  WebSocketServer,
   OnGatewayConnection,
   OnGatewayDisconnect,
-  ConnectedSocket
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 
 @WebSocketGateway({
   cors: {
@@ -21,36 +19,54 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
 
   private logger: Logger = new Logger('NotificationsGateway');
 
-  handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+  constructor(private jwtService: JwtService) {}
+
+  /**
+   * Khi client connect: xác thực JWT từ query params hoặc auth header
+   * Nếu hợp lệ → tự động join room = userId
+   */
+  async handleConnection(client: Socket) {
+    try {
+      const token =
+        (client.handshake.auth?.token as string) ||
+        (client.handshake.query?.token as string);
+
+      if (!token) {
+        this.logger.warn(`Client ${client.id} connected without token — disconnecting`);
+        client.disconnect();
+        return;
+      }
+
+      const payload = this.jwtService.verify(token);
+      const userId = payload.sub;
+
+      // Lưu userId vào socket data để dùng sau
+      (client as any).userId = userId;
+
+      // Tự động join room = userId
+      client.join(userId);
+      this.logger.log(`Client ${client.id} authenticated as user ${userId}, joined room`);
+    } catch (err) {
+      this.logger.warn(`Client ${client.id} invalid token — disconnecting`);
+      client.disconnect();
+    }
   }
 
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
   }
 
-  // Phương thức này có thể được gọi từ các Service khác (ví dụ GradesService) để bắn thông báo
-  sendGlobalNotification(message: string, type: 'info' | 'success' | 'warning' = 'info') {
-    this.server.emit('notification', {
-      message,
-      type,
-      timestamp: new Date().toISOString()
-    });
+  /**
+   * Gửi thông báo real-time cho 1 user cụ thể (qua room = userId)
+   */
+  sendToUser(userId: string, payload: any) {
+    this.server.to(userId).emit('notification', payload);
   }
 
-  // Nếu muốn gửi thông báo riêng cho 1 user cụ thể (User sẽ phải tham gia room là ID của họ)
-  @SubscribeMessage('joinUserRoom')
-  handleJoinRoom(@MessageBody() data: { userId: string }, @ConnectedSocket() client: Socket) {
-    client.join(data.userId);
-    this.logger.log(`Client ${client.id} joined room ${data.userId}`);
-    return { event: 'joined', data: `Joined room ${data.userId}` };
-  }
-
-  sendToUser(userId: string, message: string, type: 'info' | 'success' | 'warning' = 'info') {
-    this.server.to(userId).emit('notification', {
-      message,
-      type,
-      timestamp: new Date().toISOString()
-    });
+  /**
+   * Broadcast cho tất cả clients đang connect (dùng cho system-wide alerts)
+   */
+  broadcast(payload: any) {
+    this.server.emit('notification', payload);
   }
 }

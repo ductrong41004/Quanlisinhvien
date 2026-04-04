@@ -81,12 +81,18 @@ const Navbar: React.FC = () => {
                     ) : (
                       notifications.map(notif => (
                         <div 
-                          key={notif.id} 
-                          onClick={() => markAsRead(notif.id)}
-                          className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-indigo-50/50 transition-colors ${!notif.read ? 'bg-blue-50/30' : ''}`}
+                          key={notif._id} 
+                          onClick={() => {
+                            markAsRead(notif._id);
+                            if (notif.link) {
+                              navigate(notif.link);
+                              setShowDropdown(false);
+                            }
+                          }}
+                          className={`px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-indigo-50/50 transition-colors ${!notif.isRead ? 'bg-blue-50/10 border-l-4 border-l-indigo-500' : ''}`}
                         >
-                          <p className="text-xs font-semibold text-gray-800 line-clamp-2">{notif.message}</p>
-                          <p className="text-[10px] text-gray-400 mt-1">{new Date(notif.timestamp).toLocaleTimeString('vi-VN')}</p>
+                          <p className={`text-xs ${!notif.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-600'} line-clamp-2`}>{notif.message}</p>
+                          <p className="text-[10px] text-gray-400 mt-1">{new Date(notif.createdAt).toLocaleString('vi-VN')}</p>
                         </div>
                       ))
                     )}

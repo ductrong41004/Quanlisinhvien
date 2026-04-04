@@ -2,26 +2,32 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Grade, GradeDocument } from './schemas/grade.schema';
-import { NotificationsGateway } from '../notifications/notifications.gateway';
-
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class GradesService {
   constructor(
     @InjectModel(Grade.name) private gradeModel: Model<GradeDocument>,
-    private notificationsGateway: NotificationsGateway
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createGradeDto: any): Promise<GradeDocument> {
     const createdGrade = new this.gradeModel(createGradeDto);
     const saved = await createdGrade.save();
-    
-    // Gửi thông báo
-    this.notificationsGateway.sendGlobalNotification(
-      `Có bảng điểm mới cho môn ${createGradeDto.subjectName}`,
-      'success'
-    );
-    
+
+    // Lấy student để biết userId, gửi thông báo cho đúng người
+    const populated = await saved.populate('student');
+    const studentUserId = (populated.student as any)?.user?.toString();
+
+    if (studentUserId) {
+      await this.notificationsService.createForUser(
+        studentUserId,
+        `Bạn có bảng điểm mới cho môn ${createGradeDto.subjectName}`,
+        'success',
+        '/grades',
+      );
+    }
+
     return saved;
   }
 
@@ -43,21 +49,25 @@ export class GradesService {
   }
 
   async update(id: string, updateGradeDto: any): Promise<GradeDocument> {
-    // We update midterm and final, pre-save hook will recalculate total
-    const grade = await this.gradeModel.findById(id);
+    const grade = await this.gradeModel.findById(id).populate('student');
     if (!grade) {
       throw new NotFoundException(`Grade record with ID ${id} not found`);
     }
-    
+
     Object.assign(grade, updateGradeDto);
-    const saved = await grade.save(); // Using save() instead of findByIdAndUpdate to trigger hooks
-    
-    // Gửi thông báo
-    this.notificationsGateway.sendGlobalNotification(
-      `Điểm môn ${saved.subjectName} vừa được cập nhật`,
-      'info'
-    );
-    
+    const saved = await grade.save();
+
+    // Gửi thông báo cho sinh viên cụ thể
+    const studentUserId = (grade.student as any)?.user?.toString();
+    if (studentUserId) {
+      await this.notificationsService.createForUser(
+        studentUserId,
+        `Điểm môn ${saved.subjectName} của bạn vừa được cập nhật`,
+        'info',
+        '/grades',
+      );
+    }
+
     return saved;
   }
 

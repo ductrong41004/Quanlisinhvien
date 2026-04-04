@@ -9,6 +9,49 @@ const AttendancePage: React.FC = () => {
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showQR, setShowQR] = useState(false);
+  const [qrToken, setQrToken] = useState<string | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+
+  // Mutation tạo mã QR bảo mật
+  const generateQRMutation = useMutation({
+    mutationFn: async () => {
+      const resp = await axiosInstance.post('/attendance/qr/generate', { 
+        classId: selectedClass, 
+        date: selectedDate 
+      });
+      return resp.data;
+    },
+    onSuccess: (data) => {
+      setQrToken(data.token);
+      setQrExpiresAt(data.expiresAt);
+      setShowQR(true);
+    }
+  });
+
+  // Effect xử lý đếm ngược cho QR Code
+  React.useEffect(() => {
+    let timer: any;
+    if (showQR && qrExpiresAt) {
+      const calculateTime = () => {
+        const diff = Math.floor((new Date(qrExpiresAt).getTime() - Date.now()) / 1000);
+        if (diff <= 0) {
+          setTimeLeft(0);
+          setQrToken(null); // Vô hiệu hoá token cũ
+        } else {
+          setTimeLeft(diff);
+        }
+      };
+
+      calculateTime();
+      timer = setInterval(calculateTime, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [showQR, qrExpiresAt]);
+
+  const handleGenerateQR = () => {
+    generateQRMutation.mutate();
+  };
 
   // Lấy danh sách lớp học
   const { data: classes } = useQuery({
@@ -75,12 +118,12 @@ const AttendancePage: React.FC = () => {
           <p className="mt-1 text-sm text-gray-500">Ghi nhận trạng thái có mặt của học sinh theo từng buổi học.</p>
         </div>
         <button 
-          onClick={() => setShowQR(true)}
-          disabled={!selectedClass || !selectedDate}
+          onClick={handleGenerateQR}
+          disabled={!selectedClass || !selectedDate || generateQRMutation.isPending}
           className="inline-flex items-center px-5 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <QrCode className="h-5 w-5 mr-2" />
-          Mã QR Điểm Danh
+          {generateQRMutation.isPending ? 'Đang tạo...' : 'Mã QR Điểm Danh'}
         </button>
       </div>
 
@@ -202,16 +245,32 @@ const AttendancePage: React.FC = () => {
             </div>
             
             <div className="p-8 flex flex-col items-center">
-              <div className="bg-white p-4 shadow-xl border border-gray-100 rounded-2xl mb-6">
-                <QRCodeSVG 
-                  value={JSON.stringify({ classId: selectedClass, date: selectedDate })} 
-                  size={220}
-                  level="H"
-                  includeMargin={true}
-                />
+              <div className="bg-white p-4 shadow-xl border border-gray-100 rounded-2xl mb-6 relative">
+                {qrToken ? (
+                  <QRCodeSVG 
+                    value={`${window.location.origin}/checkin?token=${qrToken}`} 
+                    size={220}
+                    level="H"
+                    includeMargin={true}
+                  />
+                ) : (
+                  <div className="w-[220px] h-[220px] flex items-center justify-center bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <p className="text-xs text-red-500 font-bold text-center px-4">Mã đã hết hạn.<br/>Vui lòng đóng và tạo lại.</p>
+                  </div>
+                )}
               </div>
+              
+              {qrToken && (
+                <div className="mb-4 flex flex-col items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mb-1">Mã hết hạn sau</span>
+                  <div className={`text-2xl font-mono font-black ${timeLeft < 30 ? 'text-red-500 animate-pulse' : 'text-indigo-600'}`}>
+                    {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                  </div>
+                </div>
+              )}
+
               <p className="text-center text-sm text-gray-500 font-medium leading-relaxed">
-                Đưa mã này cho sinh viên quét bằng Ứng dụng điện thoại để tự động điểm danh.
+                Sinh viên quét mã này để tự động ghi nhận điểm danh vào hệ thống.
               </p>
             </div>
           </div>

@@ -8,6 +8,7 @@ import StudentListPage from './pages/students/StudentListPage';
 import ClassListPage from './pages/classes/ClassListPage';
 import GradeListPage from './pages/grades/GradeListPage';
 import AttendancePage from './pages/attendance/AttendancePage';
+import CheckinPage from './pages/attendance/CheckinPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 
 const queryClient = new QueryClient();
@@ -64,6 +65,14 @@ const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <AttendancePage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/checkin" 
+              element={
+                <ProtectedRoute>
+                  <CheckinPage />
                 </ProtectedRoute>
               } 
             />

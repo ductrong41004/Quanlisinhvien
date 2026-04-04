@@ -28,4 +28,19 @@ export class UsersService {
   async findTeachers(): Promise<UserDocument[]> {
     return this.userModel.find({ role: 'TEACHER' }).select('-password').exec();
   }
+
+  async update(id: string, updateUserDto: any): Promise<UserDocument | null> {
+    if (updateUserDto.password) {
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+    }
+    return this.userModel.findByIdAndUpdate(id, updateUserDto, { new: true }).select('-password').exec();
+  }
+
+  async remove(id: string): Promise<any> {
+    const result = await this.userModel.findByIdAndDelete(id).exec();
+    if (!result) {
+        throw new Error('User not found');
+    }
+    return { message: 'Teacher deleted successfully' };
+  }
 }

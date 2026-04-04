@@ -74,6 +74,13 @@ const Navbar: React.FC = () => {
                 </Link>
               )}
 
+              {/* Teachers — ADMIN only */}
+              {isAdmin && (
+                <Link to="/teachers" className={linkClass('/teachers')}>
+                  <UserCircle className="h-4 w-4 mr-1" /> Teachers
+                </Link>
+              )}
+
               {/* Classes — ADMIN & TEACHER only */}
               {isStaff && (
                 <Link to="/classes" className={linkClass('/classes')}>

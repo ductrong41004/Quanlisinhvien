@@ -9,6 +9,7 @@ import StudentProfilePage from './pages/students/StudentProfilePage';
 import ClassListPage from './pages/classes/ClassListPage';
 import ClassDetailsPage from './pages/classes/ClassDetailsPage';
 import GradeListPage from './pages/grades/GradeListPage';
+import TeacherListPage from './pages/teachers/TeacherListPage';
 import AttendancePage from './pages/attendance/AttendancePage';
 import CheckinPage from './pages/attendance/CheckinPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
@@ -74,6 +75,16 @@ const App: React.FC = () => {
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-profile">
                     <StudentListPage />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teachers"
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={['ADMIN']} redirectTo="/">
+                    <TeacherListPage />
                   </RoleRoute>
                 </ProtectedRoute>
               }

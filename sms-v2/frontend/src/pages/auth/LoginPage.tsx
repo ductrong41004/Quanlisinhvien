@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuthStore } from '../../store/useAuthStore';
 import { LogIn, GraduationCap, AlertCircle, Loader2 } from 'lucide-react';
@@ -11,6 +11,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const setAuth = useAuthStore((state) => state.setAuth);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +22,8 @@ const LoginPage: React.FC = () => {
       const response = await axiosInstance.post('/auth/login', { username, password });
       const { user, access_token } = response.data;
       setAuth(user, access_token);
-      navigate('/');
+      const redirect = searchParams.get('redirect') || '/';
+      navigate(redirect);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
     } finally {

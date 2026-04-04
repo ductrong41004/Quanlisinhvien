@@ -2,18 +2,35 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Class, ClassDocument } from './schemas/class.schema';
+import { Student, StudentDocument } from '../students/schemas/student.schema';
 
 @Injectable()
 export class ClassesService {
-  constructor(@InjectModel(Class.name) private classModel: Model<ClassDocument>) {}
+  constructor(
+    @InjectModel(Class.name) private classModel: Model<ClassDocument>,
+    @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
+  ) {}
 
   async create(createClassDto: any): Promise<ClassDocument> {
     const createdClass = new this.classModel(createClassDto);
     return createdClass.save();
   }
 
-  async findAll(): Promise<ClassDocument[]> {
-    return this.classModel.find().populate('teacher').exec();
+  async findAll(): Promise<any[]> {
+    const classes = await this.classModel.find().populate('teacher').lean().exec();
+    
+    // Concurrently aggregate student count for each class
+    const counts = await this.studentModel.aggregate([
+      { $group: { _id: '$class', count: { $sum: 1 } } }
+    ]);
+    
+    // Create a map for fast lookup
+    const countMap = new Map(counts.map(c => [c._id ? c._id.toString() : 'unassigned', c.count]));
+
+    return classes.map(c => ({
+      ...c,
+      studentCount: countMap.get(c._id.toString()) || 0
+    }));
   }
 
   async findOne(id: string): Promise<ClassDocument> {

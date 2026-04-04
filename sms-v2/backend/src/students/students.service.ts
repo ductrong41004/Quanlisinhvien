@@ -4,12 +4,14 @@ import { Model } from 'mongoose';
 import { Student, StudentDocument } from './schemas/student.schema';
 import { UsersService } from '../users/users.service';
 import { UserRole } from '../users/schemas/user.schema';
+import { Class, ClassDocument } from '../classes/schemas/class.schema';
 import * as ExcelJS from 'exceljs';
 
 @Injectable()
 export class StudentsService {
   constructor(
     @InjectModel(Student.name) private studentModel: Model<StudentDocument>,
+    @InjectModel(Class.name) private classModel: Model<ClassDocument>,
     private readonly usersService: UsersService,
   ) {}
 
@@ -220,5 +222,109 @@ export class StudentsService {
 
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer as any;
+  }
+
+  async importExcel(buffer: Buffer): Promise<{ total: number; imported: number; skipped: number; errors: string[] }> {
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer as any);
+    const worksheet = workbook.worksheets[0]; // Get the first sheet
+    
+    if (!worksheet) {
+      throw new ConflictException('File Excel không có dữ liệu');
+    }
+
+    const results = {
+      total: 0,
+      imported: 0,
+      skipped: 0,
+      errors: [] as string[],
+    };
+
+    // Cache classes to avoid multiple DB lookups
+    const classCache = new Map<string, string>(); // name -> objectId string
+
+    // Iterate through rows, skipping the header (row 1)
+    for (let i = 2; i <= worksheet.rowCount; i++) {
+      const row = worksheet.getRow(i);
+      
+      const studentCode = row.getCell(2).text?.trim();
+      const fullName = row.getCell(3).text?.trim();
+      
+      // Stop if no more data
+      if (!studentCode || !fullName) continue;
+
+      results.total++;
+
+      try {
+        // 1. Check if student already exists -> skip
+        const existingStudent = await this.studentModel.findOne({ studentCode }).exec();
+        if (existingStudent) {
+          results.skipped++;
+          results.errors.push(`Bỏ qua: Sinh viên ${studentCode} đã tồn tại`);
+          continue;
+        }
+
+        // 2. Parse basic fields
+        const dobText = row.getCell(4).text?.trim(); // Assuming format DD/MM/YYYY or Date
+        let dob: Date | undefined = undefined;
+        if (dobText) {
+           const parts = dobText.split('/');
+           if (parts.length === 3) {
+             dob = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+           } else {
+             // Handle native Date from Excel
+             dob = new Date(dobText);
+           }
+        }
+
+        const genderText = row.getCell(5).text?.trim()?.toLowerCase();
+        const gender = genderText === 'khác' ? 'OTHER' : genderText?.includes('nữ') ? 'FEMALE' : 'MALE';
+        
+        const phone = row.getCell(7).text?.trim() || undefined;
+        let email = row.getCell(8).text?.trim() || undefined;
+        
+        // 3. Resolve Class by name
+        let classId: string | undefined = undefined;
+        const className = row.getCell(6).text?.trim();
+        
+        if (className) {
+          if (classCache.has(className)) {
+            classId = classCache.get(className);
+          } else {
+            // Find in DB
+            let cls = await this.classModel.findOne({ name: className }).exec();
+            if (!cls) {
+               // Create if not exists
+               const academicYear = new Date().getFullYear().toString();
+               cls = await new this.classModel({
+                 name: className,
+                 academicYear,
+               }).save();
+            }
+            classId = cls._id.toString();
+            classCache.set(className, classId);
+          }
+        }
+
+        // 4. Create Student + User Account
+        // the createWithUser service manages generating the account
+        await this.createWithUser({
+          studentCode,
+          fullName,
+          email,
+          dob,
+          gender,
+          phoneNumber: phone,
+          class: classId
+        });
+
+        results.imported++;
+      } catch (err: any) {
+        results.skipped++;
+        results.errors.push(`Lỗi dòng ${i} (${studentCode}): ${err.message}`);
+      }
+    }
+
+    return results;
   }
 }

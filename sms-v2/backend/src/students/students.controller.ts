@@ -10,7 +10,10 @@ import {
   UseGuards,
   Res,
   Request,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { StudentsService } from './students.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -57,6 +60,16 @@ export class StudentsController {
     });
     
     res.send(buffer);
+  }
+
+  @Post('import/excel')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  @UseInterceptors(FileInterceptor('file'))
+  async importExcel(@UploadedFile() file: any) {
+    if (!file) {
+      throw new Error('File is missing');
+    }
+    return this.studentsService.importExcel(file.buffer);
   }
 
   @Get()

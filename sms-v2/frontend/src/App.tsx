@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuthStore } from './store/useAuthStore';
 import Navbar from './components/layout/Navbar';
@@ -7,6 +7,7 @@ import LoginPage from './pages/auth/LoginPage';
 import StudentListPage from './pages/students/StudentListPage';
 import StudentProfilePage from './pages/students/StudentProfilePage';
 import ClassListPage from './pages/classes/ClassListPage';
+import ClassDetailsPage from './pages/classes/ClassDetailsPage';
 import GradeListPage from './pages/grades/GradeListPage';
 import AttendancePage from './pages/attendance/AttendancePage';
 import CheckinPage from './pages/attendance/CheckinPage';
@@ -17,7 +18,12 @@ const queryClient = new QueryClient();
 // ─── Protected Route: requires authentication ─────────────────────
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  const location = useLocation();
+  
+  if (!isAuthenticated) {
+    return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} />;
+  }
+  return <>{children}</>;
 };
 
 // ─── Role Route: requires specific roles ──────────────────────────
@@ -78,6 +84,16 @@ const App: React.FC = () => {
                 <ProtectedRoute>
                   <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-profile">
                     <ClassListPage />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/classes/:id"
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-profile">
+                    <ClassDetailsPage />
                   </RoleRoute>
                 </ProtectedRoute>
               }

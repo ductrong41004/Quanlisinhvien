@@ -4,7 +4,7 @@ import axiosInstance from '../../api/axiosInstance';
 import { useAuthStore } from '../../store/useAuthStore';
 import {
   UserPlus, Search, Filter, MoreHorizontal, User, Mail, Hash,
-  BookOpen, Download, X, Pencil, Trash2, ChevronLeft, ChevronRight,
+  BookOpen, Download, Upload, X, Pencil, Trash2, ChevronLeft, ChevronRight,
   AlertTriangle, Check, Loader2,
 } from 'lucide-react';
 
@@ -448,6 +448,38 @@ const StudentListPage: React.FC = () => {
   });
 
   const students = studentsResponse?.data || [];
+
+  // Import Excel Logic
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    setIsImporting(true);
+    try {
+      const response = await axiosInstance.post('/students/import/excel', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      const { imported, skipped, total, errors } = response.data;
+      let msg = `Quá trình kết thúc!\n- Tổng số dòng: ${total}\n- Nhập thành công: ${imported}\n- Bỏ qua (Trùng/Lỗi): ${skipped}`;
+      if (errors && errors.length > 0) {
+         msg += `\n\nLưu ý một số lỗi:\n` + errors.slice(0, 5).join('\n') + (errors.length > 5 ? '\n...' : '');
+      }
+      alert(msg);
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    } catch (err: any) {
+      alert(`Lỗi khi nhập Excel: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
   const totalStudents = studentsResponse?.total || 0;
   const totalPages = studentsResponse?.totalPages || 1;
 
@@ -512,6 +544,25 @@ const StudentListPage: React.FC = () => {
           <p className="mt-1 text-sm text-gray-500">Quản lý và theo dõi thông tin chi tiết từng sinh viên trong hệ thống.</p>
         </div>
         <div className="flex items-center gap-3">
+          {canCreate && (
+            <>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleImportExcel} 
+                accept=".xlsx, .xls, .csv" 
+                className="hidden" 
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="inline-flex items-center px-4 py-2.5 border border-green-200 rounded-xl shadow-sm text-sm font-bold text-green-700 bg-green-50 hover:bg-green-100 transition-all transform hover:-translate-y-0.5 disabled:opacity-50"
+              >
+                <Upload className="h-5 w-5 mr-2" />
+                {isImporting ? 'Đang tải...' : 'Nhập Excel'}
+              </button>
+            </>
+          )}
           <button
             onClick={handleExportExcel}
             className="inline-flex items-center px-4 py-2.5 border border-indigo-200 rounded-xl shadow-sm text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-all transform hover:-translate-y-0.5"

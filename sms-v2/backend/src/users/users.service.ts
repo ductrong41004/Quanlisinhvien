@@ -24,4 +24,8 @@ export class UsersService {
   async findOneById(id: string): Promise<UserDocument | null> {
     return this.userModel.findById(id).exec();
   }
+
+  async findTeachers(): Promise<UserDocument[]> {
+    return this.userModel.find({ role: 'TEACHER' }).select('-password').exec();
+  }
 }

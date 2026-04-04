@@ -88,7 +88,8 @@ const AttendancePage: React.FC = () => {
       });
       return resp.data;
     },
-    enabled: !!selectedClass && !!selectedDate
+    enabled: !!selectedClass && !!selectedDate,
+    refetchInterval: 5000 // Tự động refetch mỗi 5 giây để thấy SV điểm danh realtime
   });
 
   // Mutation để cập nhật điểm danh
@@ -102,9 +103,9 @@ const AttendancePage: React.FC = () => {
   });
 
   const getStatusOfStudent = (studentId: string) => {
-    if (!attendanceRecords) return 'PRESENT'; // Mặc định là có mặt nếu chưa điểm danh
+    if (!attendanceRecords) return 'ABSENT'; // Mặc định là vắng mặt nếu chưa điểm danh
     const record = attendanceRecords.find((r: any) => r.student?._id === studentId);
-    return record ? record.status : 'PRESENT';
+    return record ? record.status : 'ABSENT';
   };
 
   const handleStatusChange = (studentId: string, status: string) => {
@@ -256,7 +257,7 @@ const AttendancePage: React.FC = () => {
               <div className="bg-white p-4 shadow-xl border border-gray-100 rounded-2xl mb-6 relative">
                 {qrToken ? (
                   <QRCodeSVG 
-                    value={`${window.location.origin}/checkin?token=${qrToken}`} 
+                    value={`${window.location.protocol}//${window.location.hostname === 'localhost' ? '192.168.100.160' : window.location.hostname}${window.location.port ? `:${window.location.port}` : ''}/checkin?token=${qrToken}`} 
                     size={220}
                     level="H"
                     includeMargin={true}

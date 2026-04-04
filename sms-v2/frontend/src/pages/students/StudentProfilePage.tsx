@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
 import {
   User, Mail, Hash, BookOpen, Phone, MapPin, Calendar,
-  GraduationCap, Award, TrendingUp, Loader2,
+  GraduationCap, Award, TrendingUp, Loader2, CalendarCheck, CheckCircle, XCircle, AlertCircle
 } from 'lucide-react';
 
 const StudentProfilePage: React.FC = () => {
@@ -23,6 +23,18 @@ const StudentProfilePage: React.FC = () => {
       const resp = await axiosInstance.get('/grades/my-grades');
       return resp.data;
     },
+  });
+
+  // Lấy thông tin điểm danh
+  const { data: attendanceData, isLoading: loadingAttendance } = useQuery({
+    queryKey: ['my-attendance', student?._id, student?.class?._id],
+    queryFn: async () => {
+      const resp = await axiosInstance.get('/attendance/student-stats', {
+        params: { studentId: student._id, classId: student.class._id }
+      });
+      return resp.data;
+    },
+    enabled: !!student?._id && !!student?.class?._id,
   });
 
   if (loadingProfile) {
@@ -101,6 +113,46 @@ const StudentProfilePage: React.FC = () => {
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">{gradeData?.count || 0} môn học đã có điểm</p>
+          </div>
+
+          {/* Attendance Summary */}
+          <div className="mt-6 bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <CalendarCheck className="h-5 w-5 text-indigo-600" />
+              Tóm tắt điểm danh
+            </h2>
+            {loadingAttendance ? (
+               <div className="flex justify-center p-4">
+                 <Loader2 className="h-6 w-6 text-indigo-600 animate-spin" />
+               </div>
+            ) : attendanceData ? (
+              <div className="grid grid-cols-2 gap-3">
+                 <div className="bg-gray-50 rounded-xl p-3 text-center border border-gray-100">
+                    <p className="text-[10px] uppercase font-bold text-gray-500">Tổng số buổi</p>
+                    <p className="text-xl font-black text-gray-800">{attendanceData.total}</p>
+                 </div>
+                 <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
+                    <p className="text-[10px] uppercase font-bold text-green-600 flex items-center justify-center gap-1">
+                      <CheckCircle className="h-3 w-3" /> Có mặt
+                    </p>
+                    <p className="text-xl font-black text-green-700">{attendanceData.present}</p>
+                 </div>
+                 <div className="bg-red-50 rounded-xl p-3 text-center border border-red-100">
+                    <p className="text-[10px] uppercase font-bold text-red-600 flex items-center justify-center gap-1">
+                      <XCircle className="h-3 w-3" /> Vắng mặt
+                    </p>
+                    <p className="text-xl font-black text-red-700">{attendanceData.absent}</p>
+                 </div>
+                 <div className="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-100">
+                    <p className="text-[10px] uppercase font-bold text-yellow-600 flex items-center justify-center gap-1">
+                      <AlertCircle className="h-3 w-3" /> Có phép
+                    </p>
+                    <p className="text-xl font-black text-yellow-700">{attendanceData.excused}</p>
+                 </div>
+              </div>
+            ) : (
+                <p className="text-sm text-gray-500 italic text-center py-4 bg-gray-50 rounded-xl">Không có dữ liệu điểm danh</p>
+            )}
           </div>
         </div>
 

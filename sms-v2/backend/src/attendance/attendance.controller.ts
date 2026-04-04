@@ -14,7 +14,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/schemas/user.schema';
 
 @Controller('attendance')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
@@ -27,7 +27,6 @@ export class AttendanceController {
    * Teacher/Admin tạo mã QR (trả về JWT token hết hạn 5 phút)
    */
   @Post('qr/generate')
-  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   generateQR(@Body() body: { classId: string; date: string }) {
     return this.attendanceService.generateSessionToken(body.classId, body.date);
@@ -36,6 +35,7 @@ export class AttendanceController {
   /**
    * POST /attendance/qr/checkin
    * Student gửi token từ QR → server verify + ghi attendance
+   * Tất cả role đều có thể checkin (STUDENT dùng chính)
    */
   @Post('qr/checkin')
   async checkinByQR(@Body() body: { token: string }, @Request() req: any) {
@@ -44,18 +44,16 @@ export class AttendanceController {
   }
 
   // =============================================
-  // MANUAL ATTENDANCE ENDPOINTS (giữ nguyên)
+  // MANUAL ATTENDANCE ENDPOINTS
   // =============================================
 
   @Post()
-  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async upsertAttendance(@Body() dto: any) {
     return this.attendanceService.upsertAttendance(dto);
   }
 
   @Get('by-class')
-  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async getByClassAndDate(
     @Query('classId') classId: string,
@@ -64,6 +62,10 @@ export class AttendanceController {
     return this.attendanceService.getByClassAndDate(classId, date);
   }
 
+  /**
+   * GET /attendance/student-stats
+   * All roles có thể xem (STUDENT chỉ xem stats của mình)
+   */
   @Get('student-stats')
   async getStudentStats(
     @Query('studentId') studentId: string,

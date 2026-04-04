@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
+import { useAuthStore } from '../../store/useAuthStore';
 import {
   UserPlus, Search, Filter, MoreHorizontal, User, Mail, Hash,
   BookOpen, Download, X, Pencil, Trash2, ChevronLeft, ChevronRight,
@@ -342,7 +343,9 @@ const ActionDropdown: React.FC<{
   student: StudentData;
   onEdit: (s: StudentData) => void;
   onDelete: (s: StudentData) => void;
-}> = ({ student, onEdit, onDelete }) => {
+  canEdit: boolean;
+  canDelete: boolean;
+}> = ({ student, onEdit, onDelete, canEdit, canDelete }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -356,6 +359,8 @@ const ActionDropdown: React.FC<{
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  if (!canEdit && !canDelete) return null;
+
   return (
     <div className="relative" ref={ref}>
       <button
@@ -366,20 +371,24 @@ const ActionDropdown: React.FC<{
       </button>
       {open && (
         <div className="absolute right-0 top-full mt-1 w-40 rounded-xl bg-white shadow-xl border border-gray-100 py-1 z-20 animate-in fade-in zoom-in-95 duration-200">
-          <button
-            onClick={() => { onEdit(student); setOpen(false); }}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-          >
-            <Pencil className="h-4 w-4" />
-            Chỉnh sửa
-          </button>
-          <button
-            onClick={() => { onDelete(student); setOpen(false); }}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="h-4 w-4" />
-            Xóa
-          </button>
+          {canEdit && (
+            <button
+              onClick={() => { onEdit(student); setOpen(false); }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+            >
+              <Pencil className="h-4 w-4" />
+              Chỉnh sửa
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => { onDelete(student); setOpen(false); }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+              Xóa
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -389,6 +398,12 @@ const ActionDropdown: React.FC<{
 // ─── Main Page Component ──────────────────────────────────────────
 const StudentListPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN';
+  const isTeacher = user?.role === 'TEACHER';
+  const canCreate = isAdmin || isTeacher;
+  const canEdit = isAdmin || isTeacher;
+  const canDelete = isAdmin; // chỉ ADMIN mới được xóa
 
   // Search & filter state
   const [searchInput, setSearchInput] = useState('');
@@ -504,6 +519,7 @@ const StudentListPage: React.FC = () => {
             <Download className="h-5 w-5 mr-2" />
             Xuất Excel
           </button>
+          {canCreate && (
           <button
             onClick={() => setAddModalOpen(true)}
             className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5"
@@ -511,6 +527,7 @@ const StudentListPage: React.FC = () => {
             <UserPlus className="h-5 w-5 mr-2" />
             Thêm Sinh viên
           </button>
+          )}
         </div>
       </div>
 
@@ -666,6 +683,8 @@ const StudentListPage: React.FC = () => {
                         student={student}
                         onEdit={(s) => setEditStudent(s)}
                         onDelete={(s) => setDeleteStudent(s)}
+                        canEdit={canEdit}
+                        canDelete={canDelete}
                       />
                     </td>
                   </tr>

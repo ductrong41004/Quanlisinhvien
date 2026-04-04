@@ -1,9 +1,13 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
+import { useAuthStore } from '../../store/useAuthStore';
 import { ClipboardList, User, Book, Calculator, Star, MoreVertical } from 'lucide-react';
 
 const GradeListPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const isAdminOrTeacher = user?.role === 'ADMIN' || user?.role === 'TEACHER';
+
   const { data: grades, isLoading } = useQuery({
     queryKey: ['grades'],
     queryFn: async () => {
@@ -30,10 +34,12 @@ const GradeListPage: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Bảng điểm Sinh viên</h1>
           <p className="mt-1 text-sm text-gray-500">Quản lý và cập nhật kết quả học tập cho sinh viên trong các môn học.</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
-          <Calculator className="h-5 w-5 mr-2" />
-          Nhập điểm hàng loạt
-        </button>
+        {isAdminOrTeacher && (
+          <button className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+            <Calculator className="h-5 w-5 mr-2" />
+            Nhập điểm hàng loạt
+          </button>
+        )}
       </div>
 
       <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
@@ -46,7 +52,9 @@ const GradeListPage: React.FC = () => {
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest leading-6 text-center">Cuối kỳ (70%)</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest leading-6 text-center">Tổng kết</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-widest leading-6 text-center">Xếp loại</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-widest leading-6">Thao tác</th>
+                {isAdminOrTeacher && (
+                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-widest leading-6">Thao tác</th>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100 italic-last-row">
@@ -100,11 +108,13 @@ const GradeListPage: React.FC = () => {
                         {grade.gradeLetter}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button className="p-2 rounded-lg text-gray-400 hover:bg-white hover:text-indigo-600 transition-all shadow-sm border border-transparent hover:border-gray-100">
-                        <MoreVertical className="h-5 w-5" />
-                      </button>
-                    </td>
+                    {isAdminOrTeacher && (
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button className="p-2 rounded-lg text-gray-400 hover:bg-white hover:text-indigo-600 transition-all shadow-sm border border-transparent hover:border-gray-100">
+                          <MoreVertical className="h-5 w-5" />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))
               )}

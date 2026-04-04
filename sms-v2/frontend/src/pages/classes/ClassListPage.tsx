@@ -1,9 +1,13 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
+import { useAuthStore } from '../../store/useAuthStore';
 import { BookOpen, Users, User, Calendar, ExternalLink, Plus } from 'lucide-react';
 
 const ClassListPage: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role === 'ADMIN';
+
   const { data: classes, isLoading } = useQuery({
     queryKey: ['classes'],
     queryFn: async () => {
@@ -19,10 +23,12 @@ const ClassListPage: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Danh sách Lớp học</h1>
           <p className="mt-1 text-sm text-gray-500">Xem và quản lý các lớp học, giáo viên phụ trách và niên khóa.</p>
         </div>
-        <button className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
-          <Plus className="h-5 w-5 mr-2" />
-          Tạo Lớp mới
-        </button>
+        {isAdmin && (
+          <button className="inline-flex items-center px-4 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all transform hover:-translate-y-0.5">
+            <Plus className="h-5 w-5 mr-2" />
+            Tạo Lớp mới
+          </button>
+        )}
       </div>
 
       {isLoading ? (
@@ -82,7 +88,9 @@ const ClassListPage: React.FC = () => {
         <div className="bg-white rounded-2xl p-20 text-center border-2 border-dashed border-gray-200">
           <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Chưa có lớp học nào được tạo.</p>
-          <button className="mt-4 text-indigo-600 font-bold hover:underline">Tạo lớp học đầu tiên ngay</button>
+          {isAdmin && (
+            <button className="mt-4 text-indigo-600 font-bold hover:underline">Tạo lớp học đầu tiên ngay</button>
+          )}
         </div>
       )}
     </div>

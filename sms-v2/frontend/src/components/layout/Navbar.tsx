@@ -1,12 +1,14 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, LayoutDashboard, GraduationCap, BookOpen, ClipboardList, CalendarCheck, Bell } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { LogOut, User, LayoutDashboard, GraduationCap, BookOpen, ClipboardList, CalendarCheck, Bell, UserCircle } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore } from '../../store/useNotificationStore';
+
 const Navbar: React.FC = () => {
   const { user, logout, isAuthenticated } = useAuthStore();
   const { connect, disconnect, unreadCount, notifications, markAsRead } = useNotificationStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [showDropdown, setShowDropdown] = React.useState(false);
 
   React.useEffect(() => {
@@ -24,6 +26,30 @@ const Navbar: React.FC = () => {
 
   if (!isAuthenticated) return null;
 
+  const role = user?.role;
+  const isAdmin = role === 'ADMIN';
+  const isTeacher = role === 'TEACHER';
+  const isStudent = role === 'STUDENT';
+  const isStaff = isAdmin || isTeacher; // Admin hoặc Teacher
+
+  // Role badge color
+  const roleBadgeColor = isAdmin
+    ? 'bg-red-50 text-red-700 border-red-200'
+    : isTeacher
+    ? 'bg-blue-50 text-blue-700 border-blue-200'
+    : 'bg-green-50 text-green-700 border-green-200';
+
+  const roleLabel = isAdmin ? 'ADMIN' : isTeacher ? 'GIÁO VIÊN' : 'SINH VIÊN';
+
+  // Check if current path matches for active link styling
+  const isActive = (path: string) => location.pathname === path;
+  const linkClass = (path: string) =>
+    `inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
+      isActive(path)
+        ? 'border-indigo-500 text-indigo-600'
+        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+    }`;
+
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,25 +60,57 @@ const Navbar: React.FC = () => {
               <span className="text-xl font-bold text-gray-900">SMS Pro</span>
             </div>
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
-              <Link to="/" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                <LayoutDashboard className="h-4 w-4 mr-1" /> Dash
-              </Link>
-              <Link to="/students" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                <User className="h-4 w-4 mr-1" /> Students
-              </Link>
-              <Link to="/classes" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                <BookOpen className="h-4 w-4 mr-1" /> Classes
-              </Link>
-              <Link to="/grades" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                <ClipboardList className="h-4 w-4 mr-1" /> Grades
-              </Link>
-              <Link to="/attendance" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                <CalendarCheck className="h-4 w-4 mr-1" /> Attendance
-              </Link>
+              {/* Dashboard — ADMIN & TEACHER only */}
+              {isStaff && (
+                <Link to="/" className={linkClass('/')}>
+                  <LayoutDashboard className="h-4 w-4 mr-1" /> Dashboard
+                </Link>
+              )}
+
+              {/* Students — ADMIN & TEACHER only */}
+              {isStaff && (
+                <Link to="/students" className={linkClass('/students')}>
+                  <User className="h-4 w-4 mr-1" /> Students
+                </Link>
+              )}
+
+              {/* Classes — ADMIN & TEACHER only */}
+              {isStaff && (
+                <Link to="/classes" className={linkClass('/classes')}>
+                  <BookOpen className="h-4 w-4 mr-1" /> Classes
+                </Link>
+              )}
+
+              {/* Grades — ADMIN & TEACHER */}
+              {isStaff && (
+                <Link to="/grades" className={linkClass('/grades')}>
+                  <ClipboardList className="h-4 w-4 mr-1" /> Grades
+                </Link>
+              )}
+
+              {/* Attendance — ADMIN & TEACHER only */}
+              {isStaff && (
+                <Link to="/attendance" className={linkClass('/attendance')}>
+                  <CalendarCheck className="h-4 w-4 mr-1" /> Attendance
+                </Link>
+              )}
+
+              {/* ── STUDENT menu ── */}
+              {isStudent && (
+                <>
+                  <Link to="/my-profile" className={linkClass('/my-profile')}>
+                    <UserCircle className="h-4 w-4 mr-1" /> Hồ sơ
+                  </Link>
+                  <Link to="/my-grades" className={linkClass('/my-grades')}>
+                    <ClipboardList className="h-4 w-4 mr-1" /> Điểm số
+                  </Link>
+                </>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-4">
             
+            {/* Notification bell */}
             <div className="relative">
               <button 
                 onClick={() => setShowDropdown(!showDropdown)}
@@ -101,9 +159,12 @@ const Navbar: React.FC = () => {
               )}
             </div>
 
+            {/* User info + role badge */}
             <div className="text-right flex flex-col justify-center mr-2 border-l border-gray-200 pl-4">
               <p className="text-xs font-semibold text-gray-900">{user?.username}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">{user?.role}</p>
+              <span className={`inline-flex items-center justify-center text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border mt-0.5 ${roleBadgeColor}`}>
+                {roleLabel}
+              </span>
             </div>
             <button
               onClick={handleLogout}

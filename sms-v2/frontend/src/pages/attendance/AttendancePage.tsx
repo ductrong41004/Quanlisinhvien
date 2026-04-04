@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
+import { useAuthStore } from '../../store/useAuthStore';
 import { Calendar as CalendarIcon, CheckCircle, XCircle, AlertCircle, QrCode, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const AttendancePage: React.FC = () => {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const isAdminOrTeacher = user?.role === 'ADMIN' || user?.role === 'TEACHER';
+
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showQR, setShowQR] = useState(false);
@@ -63,15 +67,17 @@ const AttendancePage: React.FC = () => {
   });
 
   // Lấy danh sách sinh viên theo lớp đã chọn
-  // Lưu ý: api students cần hỗ trợ filter theo class, ta dùng params: { class: selectedClass }
-  const { data: students, isLoading: isLoadingStudents } = useQuery({
+  const { data: studentsData, isLoading: isLoadingStudents } = useQuery({
     queryKey: ['students', selectedClass],
     queryFn: async () => {
-      const resp = await axiosInstance.get('/students', { params: { class: selectedClass } });
+      // Dùng limit lớn để lấy tất cả sinh viên trong lớp điểm danh
+      const resp = await axiosInstance.get('/students', { params: { class: selectedClass, limit: 100 } });
       return resp.data;
     },
     enabled: !!selectedClass
   });
+  
+  const students = studentsData?.data || [];
 
   // Lấy ds điểm danh của lớp trong ngày đã chọn
   const { data: attendanceRecords } = useQuery({
@@ -112,19 +118,21 @@ const AttendancePage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Quản Lý Điểm Danh</h1>
           <p className="mt-1 text-sm text-gray-500">Ghi nhận trạng thái có mặt của học sinh theo từng buổi học.</p>
         </div>
-        <button 
-          onClick={handleGenerateQR}
-          disabled={!selectedClass || !selectedDate || generateQRMutation.isPending}
-          className="inline-flex items-center px-5 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <QrCode className="h-5 w-5 mr-2" />
-          {generateQRMutation.isPending ? 'Đang tạo...' : 'Mã QR Điểm Danh'}
-        </button>
+        {isAdminOrTeacher && (
+          <button 
+            onClick={handleGenerateQR}
+            disabled={!selectedClass || !selectedDate || generateQRMutation.isPending}
+            className="inline-flex items-center px-5 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <QrCode className="h-5 w-5 mr-2" />
+            {generateQRMutation.isPending ? 'Đang tạo...' : 'Mã QR Điểm Danh'}
+          </button>
+        )}
       </div>
 
       <div className="bg-white shadow-lg rounded-2xl p-6 mb-8 border border-gray-100 flex flex-col sm:flex-row gap-6">

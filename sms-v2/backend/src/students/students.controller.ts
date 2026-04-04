@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Res,
+  Request,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { StudentsService } from './students.service';
@@ -22,15 +23,23 @@ import { UserRole } from '../users/schemas/user.schema';
 export class StudentsController {
   constructor(private readonly studentsService: StudentsService) {}
 
+  /**
+   * GET /students/me — Student xem hồ sơ cá nhân
+   * Phải đặt TRƯỚC route :id để không bị conflict
+   */
+  @Get('me')
+  @Roles(UserRole.STUDENT)
+  async getMyProfile(@Request() req: any) {
+    const userId = req.user.userId;
+    return this.studentsService.findByUserId(userId);
+  }
+
   @Post()
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async create(@Body() createStudentDto: any) {
     return this.studentsService.create(createStudentDto);
   }
 
-  /**
-   * Create a student with auto-generated User account
-   */
   @Post('with-user')
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async createWithUser(@Body() dto: any) {
@@ -51,11 +60,13 @@ export class StudentsController {
   }
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async findAll(@Query() query: any) {
     return this.studentsService.findAll(query);
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async findOne(@Param('id') id: string) {
     return this.studentsService.findOne(id);
   }

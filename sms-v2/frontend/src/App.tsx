@@ -5,6 +5,7 @@ import { useAuthStore } from './store/useAuthStore';
 import Navbar from './components/layout/Navbar';
 import LoginPage from './pages/auth/LoginPage';
 import StudentListPage from './pages/students/StudentListPage';
+import StudentProfilePage from './pages/students/StudentProfilePage';
 import ClassListPage from './pages/classes/ClassListPage';
 import GradeListPage from './pages/grades/GradeListPage';
 import AttendancePage from './pages/attendance/AttendancePage';
@@ -13,12 +14,33 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 
 const queryClient = new QueryClient();
 
-// Higher-order component for protected routes
+// ─── Protected Route: requires authentication ─────────────────────
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
+// ─── Role Route: requires specific roles ──────────────────────────
+const RoleRoute: React.FC<{
+  children: React.ReactNode;
+  allowedRoles: string[];
+  redirectTo?: string;
+}> = ({ children, allowedRoles, redirectTo = '/' }) => {
+  const user = useAuthStore((state) => state.user);
+  if (!user || !allowedRoles.includes(user.role)) {
+    return <Navigate to={redirectTo} replace />;
+  }
+  return <>{children}</>;
+};
+
+// ─── Smart Home Route: redirect based on role ─────────────────────
+const HomeRoute: React.FC = () => {
+  const user = useAuthStore((state) => state.user);
+  if (user?.role === 'STUDENT') {
+    return <Navigate to="/my-profile" replace />;
+  }
+  return <DashboardPage />;
+};
 
 const App: React.FC = () => {
   return (
@@ -28,54 +50,92 @@ const App: React.FC = () => {
           <Navbar />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route 
-              path="/" 
+
+            {/* Home: ADMIN/TEACHER → Dashboard, STUDENT → redirect to profile */}
+            <Route
+              path="/"
               element={
                 <ProtectedRoute>
-                  <DashboardPage />
+                  <HomeRoute />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/students" 
+
+            {/* ── ADMIN & TEACHER only ── */}
+            <Route
+              path="/students"
               element={
                 <ProtectedRoute>
-                  <StudentListPage />
+                  <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-profile">
+                    <StudentListPage />
+                  </RoleRoute>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/classes" 
+            <Route
+              path="/classes"
               element={
                 <ProtectedRoute>
-                  <ClassListPage />
+                  <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-profile">
+                    <ClassListPage />
+                  </RoleRoute>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/grades" 
+            <Route
+              path="/grades"
               element={
                 <ProtectedRoute>
-                  <GradeListPage />
+                  <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-grades">
+                    <GradeListPage />
+                  </RoleRoute>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/attendance" 
+            <Route
+              path="/attendance"
               element={
                 <ProtectedRoute>
-                  <AttendancePage />
+                  <RoleRoute allowedRoles={['ADMIN', 'TEACHER']} redirectTo="/my-profile">
+                    <AttendancePage />
+                  </RoleRoute>
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/checkin" 
+
+            {/* ── STUDENT only ── */}
+            <Route
+              path="/my-profile"
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={['STUDENT']} redirectTo="/">
+                    <StudentProfilePage />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-grades"
+              element={
+                <ProtectedRoute>
+                  <RoleRoute allowedRoles={['STUDENT']} redirectTo="/grades">
+                    <StudentProfilePage />
+                  </RoleRoute>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Checkin: all authenticated users */}
+            <Route
+              path="/checkin"
               element={
                 <ProtectedRoute>
                   <CheckinPage />
                 </ProtectedRoute>
-              } 
+              }
             />
+
+            {/* Fallback */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

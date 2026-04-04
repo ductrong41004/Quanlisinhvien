@@ -131,6 +131,14 @@ export class StudentsService {
     return student;
   }
 
+  async findByUserId(userId: string): Promise<StudentDocument> {
+    const student = await this.studentModel.findOne({ user: userId }).populate('user').populate('class').exec();
+    if (!student) {
+      throw new NotFoundException(`Không tìm thấy hồ sơ sinh viên cho tài khoản này`);
+    }
+    return student;
+  }
+
   async update(id: string, updateStudentDto: any): Promise<StudentDocument> {
     const student = await this.studentModel
       .findByIdAndUpdate(id, updateStudentDto, { new: true })

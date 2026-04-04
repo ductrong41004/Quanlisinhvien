@@ -9,6 +9,8 @@ import { StudentsModule } from './students/students.module';
 import { ClassesModule } from './classes/classes.module';
 import { GradesModule } from './grades/grades.module';
 import { DatabaseModule } from './database/database.module';
+import { AttendanceModule } from './attendance/attendance.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { DatabaseModule } from './database/database.module';
     ClassesModule,
     GradesModule,
     DatabaseModule,
+    AttendanceModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

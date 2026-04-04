@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogOut, User, LayoutDashboard, GraduationCap, BookOpen, ClipboardList } from 'lucide-react';
+import { LogOut, User, LayoutDashboard, GraduationCap, BookOpen, ClipboardList, CalendarCheck } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 
 const Navbar: React.FC = () => {
@@ -35,6 +35,9 @@ const Navbar: React.FC = () => {
               </Link>
               <Link to="/grades" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
                 <ClipboardList className="h-4 w-4 mr-1" /> Grades
+              </Link>
+              <Link to="/attendance" className="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <CalendarCheck className="h-4 w-4 mr-1" /> Attendance
               </Link>
             </div>
           </div>

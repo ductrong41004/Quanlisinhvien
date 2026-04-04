@@ -1,11 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
-import { ArrowLeft, BookOpen, User, Users, Calendar, GraduationCap } from 'lucide-react';
+import { ArrowLeft, BookOpen, User, Users, Calendar, GraduationCap, UserPlus, X } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
 
 const ClassDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const isAdminOrTeacher = user?.role === 'ADMIN' || user?.role === 'TEACHER';
+
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
 
   // Fetch Class info
   const { data: classData, isLoading: classLoading } = useQuery({
@@ -20,13 +27,43 @@ const ClassDetailsPage: React.FC = () => {
   const { data: studentsResponse, isLoading: studentsLoading } = useQuery({
     queryKey: ['students-in-class', id],
     queryFn: async () => {
-      // Use limit=1000 or similar to fetch all students without complex pagination for dashboard overview
       const response = await axiosInstance.get(`/students`, { params: { class: id, limit: 1000 } });
       return response.data;
     },
   });
 
+  // Fetch all students to assign (only when modal opens)
+  const { data: allStudentsResponse, isLoading: allStudentsLoading } = useQuery({
+    queryKey: ['all-students'],
+    queryFn: async () => {
+      const response = await axiosInstance.get(`/students?limit=2000`);
+      return response.data;
+    },
+    enabled: isAssignModalOpen,
+  });
+
+  const assignStudentsMutation = useMutation({
+    mutationFn: (studentIds: string[]) => axiosInstance.patch(`/classes/${id}/assign-students`, { studentIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students-in-class', id] });
+      queryClient.invalidateQueries({ queryKey: ['classes'] }); // update student counts across the app
+      setIsAssignModalOpen(false);
+      setSelectedStudentIds([]);
+      alert('Thêm sinh viên vào lớp thành công!');
+    },
+    onError: (err: any) => alert(`Lỗi: ${err.response?.data?.message || err.message}`)
+  });
+
   const students = studentsResponse?.data || [];
+  const allStudents = allStudentsResponse?.data || [];
+  
+  // Filter out students who are ALREADY in this class
+  const availableStudents = allStudents.filter((st: any) => {
+    // If student has a class object/id, check if it matches the current class id
+    const stClassId = typeof st.class === 'object' ? st.class?._id : st.class;
+    return stClassId !== id;
+  });
+
   const isLoading = classLoading || studentsLoading;
 
   if (isLoading) {
@@ -47,6 +84,22 @@ const ClassDetailsPage: React.FC = () => {
       </div>
     );
   }
+
+  const handleToggleStudent = (studentId: string) => {
+    setSelectedStudentIds(prev => 
+      prev.includes(studentId) 
+        ? prev.filter(sId => sId !== studentId) 
+        : [...prev, studentId]
+    );
+  };
+
+  const handleAssignSubmit = () => {
+    if (selectedStudentIds.length === 0) return alert('Vui lòng chọn ít nhất 1 sinh viên');
+    assignStudentsMutation.mutate(selectedStudentIds);
+  };
+
+  const selectAll = () => setSelectedStudentIds(availableStudents.map((s: any) => s._id));
+  const deselectAll = () => setSelectedStudentIds([]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -108,11 +161,20 @@ const ClassDetailsPage: React.FC = () => {
       {/* Students List */}
       <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 relative">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-        <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
+        <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row justify-between items-center gap-4">
           <h2 className="text-lg font-bold text-gray-900 flex items-center">
             <GraduationCap className="h-5 w-5 mr-2 text-indigo-600" />
             Danh sách Sinh viên đang học ({students.length})
           </h2>
+          {isAdminOrTeacher && (
+            <button 
+              onClick={() => setIsAssignModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all font-semibold"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Thêm Sinh viên vào lớp
+            </button>
+          )}
         </div>
         <div className="overflow-x-auto">
           {students.length === 0 ? (
@@ -161,6 +223,96 @@ const ClassDetailsPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Assign Students Modal */}
+      {isAssignModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[80vh]">
+            <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <UserPlus className="h-5 w-5 text-indigo-600" />
+                  Chọn Sinh viên vào lớp
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">Đã chọn {selectedStudentIds.length} sinh viên</p>
+              </div>
+              <button onClick={() => setIsAssignModalOpen(false)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="px-6 py-3 border-b border-gray-50 bg-gray-50 flex justify-between items-center text-sm">
+              <span className="font-semibold text-gray-600">Danh sách Sinh viên khả dụng</span>
+              <div className="gap-3 flex">
+                 <button onClick={selectAll} className="text-indigo-600 hover:underline font-medium">Chọn tất cả</button>
+                 <button onClick={deselectAll} className="text-gray-500 hover:underline font-medium">Bỏ chọn</button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-2 min-h-[300px]">
+              {allStudentsLoading ? (
+                <div className="flex flex-col items-center justify-center h-full">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                  <span className="mt-2 text-sm text-gray-500">Đang tải toàn bộ dữ liệu sinh viên...</span>
+                </div>
+              ) : availableStudents.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                  <Users className="h-10 w-10 mb-2 opacity-50" />
+                  <span>Không có sinh viên nào trống hợp lệ.</span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-2">
+                  {availableStudents.map((st: any) => {
+                    const isSelected = selectedStudentIds.includes(st._id);
+                    return (
+                      <div 
+                        key={st._id} 
+                        onClick={() => handleToggleStudent(st._id)}
+                        className={`flex items-center p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-gray-100 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input 
+                           type="checkbox" 
+                           checked={isSelected} 
+                           readOnly
+                           className="h-4 w-4 text-indigo-600 rounded border-gray-300 mr-3 pointer-events-none" 
+                        />
+                        <div>
+                          <div className={`text-sm font-bold ${isSelected ? 'text-indigo-900' : 'text-gray-900'}`}>
+                            {st.fullName}
+                          </div>
+                          <div className="text-xs text-gray-500">{st.studentCode}</div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 flex justify-end gap-3 border-t border-gray-100 bg-white">
+              <button
+                type="button"
+                onClick={() => setIsAssignModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleAssignSubmit}
+                disabled={assignStudentsMutation.isPending || selectedStudentIds.length === 0}
+                className="px-6 py-2 text-sm font-bold text-white bg-indigo-600 rounded-xl hover:bg-indigo-700 transition-colors disabled:bg-indigo-400 disabled:cursor-not-allowed flex items-center"
+              >
+                {assignStudentsMutation.isPending && (
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                )}
+                Cập nhật Sĩ số
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

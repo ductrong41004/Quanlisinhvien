@@ -46,4 +46,10 @@ export class ClassesController {
   async remove(@Param('id') id: string) {
     return this.classesService.remove(id);
   }
+
+  @Patch(':id/assign-students')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async assignStudents(@Param('id') id: string, @Body('studentIds') studentIds: string[]) {
+    return this.classesService.assignStudents(id, studentIds);
+  }
 }

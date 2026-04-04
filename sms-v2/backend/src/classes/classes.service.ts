@@ -58,4 +58,22 @@ export class ClassesService {
     }
     return { message: 'Class deleted successfully' };
   }
+
+  async assignStudents(classId: string, studentIds: string[]): Promise<any> {
+    const targetClass = await this.classModel.findById(classId).exec();
+    if (!targetClass) {
+      throw new NotFoundException(`Class with ID ${classId} not found`);
+    }
+    
+    // Update all matching students to have this class
+    const updateResult = await this.studentModel.updateMany(
+      { _id: { $in: studentIds } },
+      { $set: { class: classId } }
+    );
+    
+    return { 
+      message: 'Students assigned successfully', 
+      modifiedCount: updateResult.modifiedCount 
+    };
+  }
 }

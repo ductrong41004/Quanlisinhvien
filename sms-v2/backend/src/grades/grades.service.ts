@@ -2,14 +2,27 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Grade, GradeDocument } from './schemas/grade.schema';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
+
 
 @Injectable()
 export class GradesService {
-  constructor(@InjectModel(Grade.name) private gradeModel: Model<GradeDocument>) {}
+  constructor(
+    @InjectModel(Grade.name) private gradeModel: Model<GradeDocument>,
+    private notificationsGateway: NotificationsGateway
+  ) {}
 
   async create(createGradeDto: any): Promise<GradeDocument> {
     const createdGrade = new this.gradeModel(createGradeDto);
-    return createdGrade.save();
+    const saved = await createdGrade.save();
+    
+    // Gửi thông báo
+    this.notificationsGateway.sendGlobalNotification(
+      `Có bảng điểm mới cho môn ${createGradeDto.subjectName}`,
+      'success'
+    );
+    
+    return saved;
   }
 
   async findAll(query: any = {}): Promise<GradeDocument[]> {
@@ -37,7 +50,15 @@ export class GradesService {
     }
     
     Object.assign(grade, updateGradeDto);
-    return grade.save(); // Using save() instead of findByIdAndUpdate to trigger hooks
+    const saved = await grade.save(); // Using save() instead of findByIdAndUpdate to trigger hooks
+    
+    // Gửi thông báo
+    this.notificationsGateway.sendGlobalNotification(
+      `Điểm môn ${saved.subjectName} vừa được cập nhật`,
+      'info'
+    );
+    
+    return saved;
   }
 
   async remove(id: string): Promise<any> {

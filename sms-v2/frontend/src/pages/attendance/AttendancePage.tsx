@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
-import { Calendar as CalendarIcon, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle, XCircle, AlertCircle, QrCode, X } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const AttendancePage: React.FC = () => {
   const queryClient = useQueryClient();
   const [selectedClass, setSelectedClass] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [showQR, setShowQR] = useState(false);
 
   // Lấy danh sách lớp học
   const { data: classes } = useQuery({
@@ -72,6 +74,14 @@ const AttendancePage: React.FC = () => {
           <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Quản Lý Điểm Danh</h1>
           <p className="mt-1 text-sm text-gray-500">Ghi nhận trạng thái có mặt của học sinh theo từng buổi học.</p>
         </div>
+        <button 
+          onClick={() => setShowQR(true)}
+          disabled={!selectedClass || !selectedDate}
+          className="inline-flex items-center px-5 py-2.5 border border-transparent rounded-xl shadow-md text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <QrCode className="h-5 w-5 mr-2" />
+          Mã QR Điểm Danh
+        </button>
       </div>
 
       <div className="bg-white shadow-lg rounded-2xl p-6 mb-8 border border-gray-100 flex flex-col sm:flex-row gap-6">
@@ -176,8 +186,41 @@ const AttendancePage: React.FC = () => {
           <p className="text-gray-500 font-medium">Vui lòng chọn Lớp học ở trên để tiến hành điểm danh.</p>
         </div>
       )}
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center p-6 border-b border-gray-100 bg-gray-50">
+              <h3 className="text-lg font-bold text-gray-900">Quét mã Điểm danh</h3>
+              <button 
+                onClick={() => setShowQR(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="p-8 flex flex-col items-center">
+              <div className="bg-white p-4 shadow-xl border border-gray-100 rounded-2xl mb-6">
+                <QRCodeSVG 
+                  value={JSON.stringify({ classId: selectedClass, date: selectedDate })} 
+                  size={220}
+                  level="H"
+                  includeMargin={true}
+                />
+              </div>
+              <p className="text-center text-sm text-gray-500 font-medium leading-relaxed">
+                Đưa mã này cho sinh viên quét bằng Ứng dụng điện thoại để tự động điểm danh.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
+
 
 export default AttendancePage;

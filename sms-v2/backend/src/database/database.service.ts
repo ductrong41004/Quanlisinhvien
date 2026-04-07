@@ -78,7 +78,7 @@ export class DatabaseService {
             fullName: names[i],
             dob: new Date('2008-05-15'),
             gender: i % 2 === 0 ? 'MALE' : 'FEMALE',
-            class: i < 3 ? classA._id : classB._id,
+            classes: [i < 3 ? classA._id : classB._id],
             address: 'Hà Nội, Việt Nam',
             phoneNumber: `098765432${i}`,
         });

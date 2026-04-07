@@ -43,6 +43,12 @@ export class GradesController {
     return this.gradesService.create(createGradeDto);
   }
 
+  @Post('bulk')
+  @Roles(UserRole.ADMIN, UserRole.TEACHER)
+  async createBulk(@Body() bulkData: any[]) {
+    return this.gradesService.bulkUpsert(bulkData);
+  }
+
   @Get()
   @Roles(UserRole.ADMIN, UserRole.TEACHER)
   async findAll(@Query() query: any) {

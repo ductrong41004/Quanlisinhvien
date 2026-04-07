@@ -86,6 +86,70 @@ export class GradesService {
     return { message: 'Grade record deleted successfully' };
   }
 
+  async bulkUpsert(bulkData: { studentId: string, subjectName: string, semester: string, midtermScore: number, finalScore: number }[]): Promise<any> {
+    if (!bulkData || bulkData.length === 0) return { message: 'No grades to update' };
+
+    let countCreated = 0;
+    let countUpdated = 0;
+
+    for (const data of bulkData) {
+      const { studentId, subjectName, semester, midtermScore, finalScore } = data;
+      
+      const totalScore = midtermScore * 0.3 + finalScore * 0.7;
+      let gradeLetter = 'F';
+      if (totalScore >= 8.5) gradeLetter = 'A';
+      else if (totalScore >= 7.0) gradeLetter = 'B';
+      else if (totalScore >= 5.5) gradeLetter = 'C';
+      else if (totalScore >= 4.0) gradeLetter = 'D';
+
+      const existingRecord = await this.gradeModel.findOne({ student: studentId, subjectName, semester }).populate('student');
+
+      if (existingRecord) {
+        existingRecord.midtermScore = midtermScore;
+        existingRecord.finalScore = finalScore;
+        existingRecord.totalScore = totalScore;
+        existingRecord.gradeLetter = gradeLetter;
+        await existingRecord.save();
+        countUpdated++;
+        
+        const studentUserId = (existingRecord.student as any)?.user?.toString();
+        if (studentUserId) {
+          await this.notificationsService.createForUser(
+            studentUserId,
+            `Điểm môn ${subjectName} của bạn vừa được cập nhật`,
+            'info',
+            '/grades',
+          );
+        }
+      } else {
+        const newRecord = new this.gradeModel({
+          student: studentId,
+          subjectName,
+          semester,
+          midtermScore,
+          finalScore,
+          totalScore,
+          gradeLetter
+        });
+        const saved = await newRecord.save();
+        const populated = await saved.populate('student');
+        const studentUserId = (populated.student as any)?.user?.toString();
+        countCreated++;
+        
+        if (studentUserId) {
+          await this.notificationsService.createForUser(
+            studentUserId,
+            `Bạn có bảng điểm mới cho môn ${subjectName}`,
+            'success',
+            '/grades',
+          );
+        }
+      }
+    }
+    
+    return { message: 'Bulk grades processed successfully', countCreated, countUpdated };
+  }
+
   async getStudentAverages(studentId: string): Promise<any> {
     const grades = await this.gradeModel.find({ student: studentId }).exec();
     if (grades.length === 0) return { average: 0, totalCredits: 0 };

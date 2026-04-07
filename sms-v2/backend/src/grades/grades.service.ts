@@ -3,12 +3,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Grade, GradeDocument } from './schemas/grade.schema';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StudentsService } from '../students/students.service';
 
 @Injectable()
 export class GradesService {
   constructor(
     @InjectModel(Grade.name) private gradeModel: Model<GradeDocument>,
     private notificationsService: NotificationsService,
+    private studentsService: StudentsService,
   ) {}
 
   async create(createGradeDto: any): Promise<GradeDocument> {
@@ -34,6 +36,11 @@ export class GradesService {
   async findAll(query: any = {}): Promise<GradeDocument[]> {
     const filters: any = {};
     if (query.student) filters.student = query.student;
+    if (query.classId) {
+      const studentsRes = await this.studentsService.findAll({ class: query.classId, limit: 5000 });
+      const studentIds = studentsRes.data.map((s: any) => s._id);
+      filters.student = { $in: studentIds };
+    }
     if (query.semester) filters.semester = query.semester;
     if (query.subjectName) filters.subjectName = { $regex: query.subjectName, $options: 'i' };
 

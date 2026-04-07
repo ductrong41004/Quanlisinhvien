@@ -20,11 +20,23 @@ const GradeListPage: React.FC = () => {
     finalScore: '',
   });
 
+  const [selectedClass, setSelectedClass] = useState<string>('');
+
+  // Fetch Classes
+  const { data: classes = [] } = useQuery({
+    queryKey: ['classes'],
+    queryFn: async () => {
+      const response = await axiosInstance.get('/classes');
+      return response.data;
+    },
+  });
+
   // Fetch Grades
   const { data: grades, isLoading } = useQuery({
-    queryKey: ['grades'],
+    queryKey: ['grades', selectedClass],
     queryFn: async () => {
-      const response = await axiosInstance.get('/grades');
+      const params = selectedClass ? { classId: selectedClass } : {};
+      const response = await axiosInstance.get('/grades', { params });
       return response.data;
     },
   });
@@ -44,7 +56,7 @@ const GradeListPage: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (data: any) => axiosInstance.post('/grades', data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['grades'] });
+      queryClient.invalidateQueries({ queryKey: ['grades', selectedClass] });
       setIsModalOpen(false);
       alert('Đã nhập điểm thành công!');
     },
@@ -54,7 +66,7 @@ const GradeListPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => axiosInstance.patch(`/grades/${id}`, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['grades'] });
+      queryClient.invalidateQueries({ queryKey: ['grades', selectedClass] });
       setIsModalOpen(false);
       alert('Đã cập nhật điểm thành công!');
     },
@@ -64,7 +76,7 @@ const GradeListPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => axiosInstance.delete(`/grades/${id}`),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['grades'] });
+      queryClient.invalidateQueries({ queryKey: ['grades', selectedClass] });
       alert('Đã xóa bảng điểm!');
     },
     onError: (err: any) => alert(`Lỗi: ${err.response?.data?.message || err.message}`)
@@ -86,6 +98,11 @@ const GradeListPage: React.FC = () => {
     }
     setIsModalOpen(true);
   };
+
+  // Filter students by selected class
+  const filteredStudents = selectedClass 
+    ? students.filter((s: any) => s.classes && s.classes.some((c: any) => (typeof c === 'object' ? c._id === selectedClass : c === selectedClass)))
+    : students;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +154,21 @@ const GradeListPage: React.FC = () => {
       </div>
 
       <div className="bg-white shadow-2xl rounded-2xl overflow-hidden border border-gray-100">
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50 flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex items-center gap-3 w-full md:w-auto">
+             <label className="text-sm font-semibold text-gray-700 whitespace-nowrap">Lọc theo Lớp:</label>
+             <select
+               value={selectedClass}
+               onChange={(e) => setSelectedClass(e.target.value)}
+               className="w-full md:w-64 rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 outline-none bg-white font-medium text-gray-800"
+             >
+               <option value="">-- Tất cả các lớp --</option>
+               {classes?.data?.map((c: any) => (
+                 <option key={c._id} value={c._id}>{c.name}</option>
+               ))}
+             </select>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50/80 backdrop-blur-sm">
@@ -247,7 +279,7 @@ const GradeListPage: React.FC = () => {
                   className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 outline-none bg-white disabled:bg-gray-100"
                 >
                   <option value="">-- Chọn sinh viên --</option>
-                  {students.map((st: any) => (
+                  {filteredStudents.map((st: any) => (
                     <option key={st._id} value={st._id}>{st.studentCode} - {st.fullName}</option>
                   ))}
                 </select>

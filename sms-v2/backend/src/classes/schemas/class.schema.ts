@@ -16,6 +16,9 @@ export class Class {
 
   @Prop()
   department: string;
+
+  @Prop()
+  subjectName: string;
 }
 
 export const ClassSchema = SchemaFactory.createForClass(Class);

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '../../api/axiosInstance';
 import { useAuthStore } from '../../store/useAuthStore';
-import { BookOpen, Users, User, Calendar, ExternalLink, Plus, Edit2, Trash2, X, AlertTriangle } from 'lucide-react';
+import { BookOpen, Users, User, Calendar, ExternalLink, Plus, Edit2, Trash2, X, AlertTriangle, BookMarked } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ClassListPage: React.FC = () => {
@@ -17,6 +17,7 @@ const ClassListPage: React.FC = () => {
     name: '',
     academicYear: '',
     department: '',
+    subjectName: '',
     teacher: '',
   });
 
@@ -76,11 +77,12 @@ const ClassListPage: React.FC = () => {
         name: cls.name,
         academicYear: cls.academicYear,
         department: cls.department || '',
+        subjectName: cls.subjectName || '',
         teacher: cls.teacher?._id || '',
       });
     } else {
       setEditingId(null);
-      setFormData({ name: '', academicYear: new Date().getFullYear().toString(), department: '', teacher: '' });
+      setFormData({ name: '', academicYear: new Date().getFullYear().toString(), department: '', subjectName: '', teacher: '' });
     }
     setIsModalOpen(true);
   };
@@ -167,6 +169,11 @@ const ClassListPage: React.FC = () => {
                     <span className="font-medium">Khoa/Phòng:</span>
                     <span className="ml-2 italic">{item.department || 'N/A'}</span>
                   </div>
+                  <div className="flex items-center text-sm text-gray-700">
+                    <BookMarked className="h-4 w-4 mr-2 text-indigo-500" />
+                    <span className="font-medium">Môn học:</span>
+                    <span className="ml-2 font-semibold text-indigo-800">{item.subjectName || 'Chưa gán'}</span>
+                  </div>
                 </div>
               </div>
               
@@ -245,6 +252,17 @@ const ClassListPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                   className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 outline-none"
                   placeholder="Ví dụ: Khoa học Xã hội"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Môn học</label>
+                <input
+                  type="text"
+                  value={formData.subjectName}
+                  onChange={(e) => setFormData({ ...formData, subjectName: e.target.value })}
+                  className="w-full rounded-xl border border-gray-300 px-4 py-2 text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder="Ví dụ: Lập trình Web"
                 />
               </div>
 
